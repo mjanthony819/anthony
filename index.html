@@ -256,17 +256,18 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const trails=document.querySelectorAll('.trail');
 let pos=[...trails].map(()=>({x:-5,y:-5,rot:0}));
 const base=pos.map(p=>({...p}));
-let t;
+let t,e=0,lastMove=-1e9;
 function apply(){trails.forEach((el,i)=>{el.style.transform=`translate(${pos[i].x}px,${pos[i].y}px) rotate(${pos[i].rot}deg)`})}
 function loop(){
+  e+=(((performance.now()-lastMove)<400?1:0)-e)*.1;
   for(let i=trails.length-1;i>0;i--){
-    const p=pos[i-1],c=pos[i],k=Math.max(.16-(i-1)*.02,.06);
-    c.x+=(p.x-c.x)*k;c.y+=(p.y-c.y)*k;c.rot+=(p.rot-c.rot)*k;
+    const p=pos[i-1],c=pos[i],o=(i+1)*5*e;
+    c.x+=(p.x-o-c.x)*.15;c.y+=(p.y-o-c.y)*.15;c.rot+=(p.rot-c.rot)*.12;
   }
   apply();requestAnimationFrame(loop);
 }
 document.addEventListener('mousemove',e=>{
-  clearTimeout(t);
+  clearTimeout(t);lastMove=performance.now();
   const cx=(e.clientX/window.innerWidth-.5)*2,cy=(e.clientY/window.innerHeight-.5)*2;
   pos[0].x=-5+cx*10;pos[0].y=-5+cy*12;pos[0].rot=cx*2;
   t=setTimeout(()=>{pos=base.map(p=>({...p}))},500);

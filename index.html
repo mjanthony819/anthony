@@ -1,367 +1,286 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script>const configuration={"documents":["assets/2L3TNOC4.woff2","assets/6HBTCF3E.woff2","assets/7UAGB34N.woff2","assets/DCUCO6EG.woff2","assets/E34RMFMI.woff2","assets/EDUFJISK.woff2","assets/ESVYJHOG.woff2","assets/GWBPHQBQ.woff2","assets/KZYIEKM3.woff2","assets/PQNVRRKH.otf","assets/RK4X2PXO.woff2","assets/WM77GZQE.ttf","assets/ZITNQAWX.woff2"],"hasStyles":true,"host":"https://mjanthony819.github.io/anthony","lease":"eyJmIjoiZmlsZS0wMU04MkgxWUdKSzJIUURUS1RBUFhXQlQwOCIsInIiOiJmaWxlcmV2aXNpb24tMDFNODJOTkZLRjBGQ1IyRDcwNDRHRkdLWjEiLCJvIjoidXNlci0wMU0yUVpKRE5UUUQ1UUZFU0hYMkE5SkFDMCIsInUiOiJ1c2VyLTAxTTJRWkpETlRRRDVRRkVTSFgyQTlKQUMwIiwibSI6ImxhcmdlLXBheWxvYWRzL3VzZXItMDFNMlFaSkROVFFENVFGRVNIWDJBOUpBQzAvaG9zdGVkLWZpbGUvZmlsZS0wMU04MkgxWUdKSzJIUURUS1RBUFhXQlQwOC9lYjA1MGQ4YWYzMWNiZDg1MTdkYWY2MWZiNWRlZjYzMTIzZTY2NTk2ZmZkOTFkOThkOGI3M2NmMDg1OTc4M2NlIiwiaSI6MTc5NTM4NjU3MCwiZSI6MTc5NTM4NjYzMH0.8kdNP8FkzjYmYUe32zMFUuT2vopzOUCE5cESq7DmwWY","origin":"https://files.instinct.com"};
-(() => {
- let lease = configuration.lease;
- const started = performance.now();
- let leaseReceived = started;
- let renewed = [];
- const media = new WeakMap();
- const imageStyle = document.createElement('style');
- imageStyle.textContent = 'img[data-instinct-loading]{background:linear-gradient(90deg,var(--ds-hairline,#eae9ea) 25%,var(--ds-page,#fbfafa) 50%,var(--ds-hairline,#eae9ea) 75%);background-size:200% 100%;animation:instinct-image-loading 1.6s ease-in-out infinite;color:transparent}@keyframes instinct-image-loading{to{background-position:-200% 0}}@media(prefers-reduced-motion:reduce){img[data-instinct-loading]{animation:none}}';
- document.head.append(imageStyle);
- // The shared app-shell stylesheet pins html, body and #root to a fixed viewport-height scroller; a File is a page whose root must grow with its content so the shell can size the frame to it. Its width is the frame's, so anything wider is clipped rather than scrolling the File sideways into blank space.
- const frameStyle = document.createElement('style');
- frameStyle.textContent = 'html,body,#root{position:static!important;height:auto!important;overflow:visible!important;overflow-x:clip!important;overscroll-behavior:auto!important}';
- document.head.append(frameStyle);
- const modalStyle = document.createElement('style');
- modalStyle.textContent = 'html[data-instinct-modal-viewport] dialog:modal{position:fixed!important;top:var(--instinct-modal-top)!important;bottom:var(--instinct-modal-bottom)!important;max-height:var(--instinct-modal-height)!important;margin-top:auto!important;margin-bottom:auto!important}html[data-instinct-modal-ack][data-instinct-modal-pending] dialog:modal,html[data-instinct-modal-ack][data-instinct-modal-pending] dialog:modal::backdrop{opacity:0!important;pointer-events:none!important}';
- document.head.append(modalStyle);
- const channel = crypto.randomUUID();
- const send = (type, value, details) => parent.postMessage({...details, source:'instinct-file', channel, type, value}, configuration.origin);
- const requests = new Map();
- const request = (method, params) => new Promise(resolve => {
-   if (requests.size >= 32) { resolve({status:'unavailable'}); return; }
-   const id = crypto.randomUUID();
-   const timer = setTimeout(() => { requests.delete(id); resolve({status:'unknown'}); }, 20000);
-   requests.set(id, result => { clearTimeout(timer); requests.delete(id); resolve(result); });
-   send('request', {id, method, params});
- });
- const assetURL = value => {
-   const url = new URL(value, configuration.host + '/');
-   if (url.origin === configuration.host) url.searchParams.set('lease', lease);
-   return url.href;
- };
- // A link to one of the File's own files (an imported PDF, a copied public/ file) rather than a route; the gateway lists them, since a route can have a dot too, such as /day/11.05.
- const documents = new Set(configuration.documents);
- const fileLink = anchor => {
-   try {
-     const url = new URL(anchor.getAttribute('href') || '', configuration.host + '/');
-     return url.origin === configuration.host && documents.has(decodeURIComponent(url.pathname.slice(1))) ? url : null;
-   } catch { return null; }
- };
- const fetchOriginal = window.fetch.bind(window);
- // detail is a runtime error's message, base64url-encoded into the path: the content edge and the API drop query strings before the gateway.
- const metric = (event, detail) => {
-   let path = '/_instinct/' + event + '/' + Math.min(300000, Math.round(performance.now() - started));
-   if (detail) path += '/' + btoa(String.fromCharCode(...new TextEncoder().encode(detail.slice(0, 200)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-   void fetchOriginal(assetURL(path), {credentials:'omit'}).catch(() => {});
- };
- const waitForLease = () => new Promise(resolve => {
-   const timer = setTimeout(() => { renewed = renewed.filter(callback => callback !== done); resolve(); }, 10000);
-   const done = () => { clearTimeout(timer); resolve(); };
-   renewed.push(done); send('renew', null);
- });
- window.fetch = async (input, init) => {
-   const value = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-   const url = new URL(value, configuration.host + '/');
-   if (url.origin !== configuration.host) return fetchOriginal(input, init);
-   const request = new Request(assetURL(url.href), input instanceof Request ? input : init);
-   const options = {...init, credentials:'omit'};
-   const response = await fetchOriginal(new Request(request.clone(), options));
-   if (response.status !== 401) return response;
-   await waitForLease();
-   return fetchOriginal(new Request(assetURL(url.href), new Request(request, options)));
- };
- const styleAssets = new Map();
- const inlineStyles = new WeakMap();
- const materializeStyle = async css => {
-   const replacements = new Map();
-   await Promise.all([...css.matchAll(/url\(["']?([^)'"\s]+)["']?\)/g)].map(async ([, value]) => {
-     const url = new URL(value, configuration.host + '/');
-     if (value.startsWith('#') || url.origin !== configuration.host) return;
-     const fragment = url.hash; url.hash = ''; url.searchParams.delete('lease');
-     if (!styleAssets.has(url.href)) {
-       styleAssets.set(url.href, window.fetch(url.href).then(response => {
-         if (!response.ok) throw new Error('Style asset unavailable');
-         return response.blob();
-       }).then(blob => URL.createObjectURL(blob)));
-     }
-     replacements.set(value, await styleAssets.get(url.href) + fragment);
-   }));
-   return css.replace(/url\(["']?([^)'"\s]+)["']?\)/g, (match, value) => replacements.has(value) ? 'url("' + replacements.get(value) + '")' : match);
- };
- // Reused images (for example a product photo in a newly opened dialog) have no intrinsic size until they decode again.
- const imageSizes = new Map(), imageRatioHints = new WeakMap();
- const reserveImageSpace = element => {
-   const source = element.getAttribute('src');
-   const hint = imageRatioHints.get(element);
-   if (hint && hint.source === source && element.style.aspectRatio === hint.ratio && !element.complete && !element.srcset && element.parentElement?.tagName !== 'PICTURE' && element.closest('dialog')) return;
-   if (hint && element.style.aspectRatio === hint.ratio) element.style.setProperty('aspect-ratio', hint.previous, hint.priority);
-   imageRatioHints.delete(element);
-   if (!source || element.srcset || element.parentElement?.tagName === 'PICTURE') return;
-   const url = new URL(source, configuration.host + '/');
-   if (url.origin !== configuration.host) return;
-   url.searchParams.delete('lease');
-   if (element.complete && element.naturalWidth > 0) {
-     imageSizes.set(url.href, element.naturalWidth + ' / ' + element.naturalHeight);
-     return;
-   }
-   const size = imageSizes.get(url.href);
-   if (!size || !element.closest('dialog') || element.hasAttribute('width') || element.hasAttribute('height') || getComputedStyle(element).aspectRatio !== 'auto') return;
-   const ratio = 'auto ' + size;
-   const previous = element.style.aspectRatio, priority = element.style.getPropertyPriority('aspect-ratio');
-   element.style.setProperty('aspect-ratio', ratio, priority);
-   imageRatioHints.set(element, {source, ratio: element.style.aspectRatio, previous, priority});
- };
- const rewrite = element => {
-   if (!element.isConnected || element instanceof HTMLScriptElement) return;
-   // The shell sizes this frame to its content, so native lazy loading waits for the parent page to scroll each image into view and it pops in late.
-   if (element instanceof HTMLImageElement) { if (element.loading === 'lazy') element.loading = 'eager'; reserveImageSpace(element); element.toggleAttribute('data-instinct-loading', !element.complete); }
-   if (element instanceof HTMLAnchorElement) {
-     try {
-       const url = new URL(element.getAttribute('href') || '', configuration.host + '/');
-       if ((url.origin !== configuration.host && ['https:', 'http:', 'mailto:', 'tel:'].includes(url.protocol)) || fileLink(element)) {
-         element.target = '_blank';
-         element.rel = 'noopener noreferrer';
-       }
-     } catch {}
-   }
-   for (const attribute of ['src', 'href', 'poster']) {
-     if (element instanceof HTMLAnchorElement && attribute === 'href') continue;
-     const value = element.getAttribute(attribute);
-     const current = media.get(element);
-     if (attribute === 'src' && current && value !== current.url && value !== current.source) {
-       if (current.url) URL.revokeObjectURL(current.url); media.delete(element);
-     }
-     if (!value || value.startsWith('#')) continue;
-     const url = new URL(value, configuration.host + '/');
-     if (url.origin !== configuration.host || element instanceof HTMLAnchorElement) continue;
-     if (attribute === 'src' && (element instanceof HTMLMediaElement || element instanceof HTMLSourceElement && element.parentElement instanceof HTMLMediaElement)) {
-       if (current?.source === value) {
-         if (current.url) element.setAttribute('src', current.url);
-         continue;
-       }
-       const pending = {source:value}; media.set(element, pending);
-       void window.fetch(value).then(response => { if (!response.ok) throw new Error('Media unavailable'); return response.blob(); }).then(blob => {
-         if (media.get(element) !== pending || !element.isConnected) return;
-         pending.url = URL.createObjectURL(blob); element.setAttribute('src', pending.url);
-         if (element instanceof HTMLSourceElement) element.parentElement.load();
-       }).catch(() => send('load-failed', null));
-       continue;
-     }
-     const next = assetURL(value);
-     if (value !== next) element.setAttribute(attribute, next);
-   }
-   const srcset = element.getAttribute('srcset');
-   if (srcset && !srcset.includes('data:')) {
-     const next = srcset.split(',').map(candidate => { const [url, ...descriptor] = candidate.trim().split(/\s+/); return [assetURL(url), ...descriptor].join(' '); }).join(', ');
-     if (srcset !== next) element.setAttribute('srcset', next);
-   }
-   const style = element.getAttribute('style');
-   if (style && inlineStyles.get(element)?.style !== style) {
-     const pending = {style}; inlineStyles.set(element, pending);
-     void materializeStyle(style).then(next => {
-       if (inlineStyles.get(element) !== pending || element.getAttribute('style') !== style || !element.isConnected) return;
-       pending.style = next;
-       if (style !== next) element.setAttribute('style', next);
-     }).catch(() => send('load-failed', null));
-   }
- };
- // A file link carries the lease only while it is followed: leases expire within a minute, so one written at render time would fail later, and a copied address would hand it on.
- for (const type of ['click', 'auxclick']) document.addEventListener(type, event => {
-   if (!(event.target instanceof Element)) return;
-   const anchor = event.target.closest('a[href]');
-   if (!anchor) return;
-   rewrite(anchor);
-   const url = fileLink(anchor);
-   if (!url || event.button > 1) return;
-   // The sandbox blocks downloads, so the shell starts them, under the link's download name since an imported file is served under a hashed one.
-   if (/\.(?:csv|zip)$/i.test(url.pathname)) {
-     event.preventDefault();
-     send('download', url.pathname, {name: anchor.getAttribute('download') || null});
-     return;
-   }
-   // The shell renews every forty seconds, so an older lease means renewal stalled, for example while the tab was hidden.
-   // The shell opens the tab and loads it once it holds a fresh lease: under its same-origin opener policy a tab this frame opened would come back without a handle to load it.
-   if (performance.now() - leaseReceived > 45000) {
-     event.preventDefault();
-     send('open', url.pathname + url.hash);
-     return;
-   }
-   // An SVG link has no rewritten target, so it would load the file into this frame.
-   if (!(anchor instanceof HTMLAnchorElement)) {
-     event.preventDefault();
-     window.open(assetURL(url.href), '_blank', 'noopener,noreferrer');
-     return;
-   }
-   const original = anchor.getAttribute('href'), leased = assetURL(url.href);
-   anchor.setAttribute('href', leased);
-   setTimeout(() => { if (anchor.getAttribute('href') === leased) anchor.setAttribute('href', original); });
- }, true);
- const releaseMedia = node => {
-   if (!(node instanceof Element) || node.isConnected) return;
-   for (const element of [node, ...node.querySelectorAll('audio,video,source')]) {
-     const current = media.get(element);
-     if (current?.url) {
-       if (element.getAttribute('src') === current.url) element.setAttribute('src', current.source);
-       URL.revokeObjectURL(current.url);
-     }
-     media.delete(element);
-   }
- };
- const observer = new MutationObserver(changes => {
-   for (const change of changes) {
-     if (change.type === 'attributes') rewrite(change.target);
-     for (const node of change.addedNodes) if (node instanceof Element) { rewrite(node); node.querySelectorAll('[src],[href],[poster],[srcset],[style]').forEach(rewrite); }
-     change.removedNodes.forEach(releaseMedia);
-   }
- });
- observer.observe(document.documentElement, {subtree:true,childList:true,attributes:true,attributeFilter:['src','href','poster','srcset','style']});
- const imageRetries = new WeakMap();
- document.addEventListener('load', event => { if (event.target instanceof HTMLImageElement) { reserveImageSpace(event.target); imageRetries.delete(event.target); event.target.removeAttribute('data-instinct-loading'); } }, true);
- document.addEventListener('error', event => {
-   if (!(event.target instanceof HTMLImageElement)) return;
-   const element = event.target;
-   element.removeAttribute('data-instinct-loading');
-   const failed = new URL(element.currentSrc || element.src, configuration.host + '/');
-   if (failed.origin !== configuration.host) return;
-   const source = new URL(failed); source.searchParams.delete('lease');
-   if (imageRetries.get(element) === source.href) return;
-   imageRetries.set(element, source.href);
-   void (failed.searchParams.get('lease') === lease ? waitForLease() : Promise.resolve()).then(() => {
-     if (!element.isConnected || (element.currentSrc || element.src) !== failed.href || failed.searchParams.get('lease') === lease) return;
-     if (element.parentElement instanceof HTMLPictureElement) element.parentElement.querySelectorAll('source').forEach(rewrite);
-     rewrite(element);
-   });
- }, true);
- window.addEventListener('message', event => {
-   const message = event.data;
-   if (event.source !== parent || event.origin !== configuration.origin || !message || message.source !== 'instinct-shell' || message.channel !== channel) return;
-   if (message.type === 'modal-viewport' && message.value && ['top','bottom','height'].every(key => typeof message.value[key] === 'number' && Number.isFinite(message.value[key]))) {
-     modalViewport = null;
-     for (const key of ['top','bottom','height']) document.documentElement.style.setProperty('--instinct-modal-' + key, message.value[key] + 'px');
-     document.documentElement.setAttribute('data-instinct-modal-viewport', '');
-     if (typeof message.value.open === 'boolean') document.documentElement.setAttribute('data-instinct-modal-ack', '');
-     if (!modalOpen || message.value.open !== false) document.documentElement.removeAttribute('data-instinct-modal-pending');
-   }
-   if (message.type === 'response' && message.value && typeof message.value.id === 'string') {
-     requests.get(message.value.id)?.(message.value.result);
-   }
-   if (message.type === 'lease' && typeof message.value === 'string' && message.value.length <= 2048) {
-     lease = message.value; leaseReceived = performance.now();
-     const callbacks = renewed; renewed = []; callbacks.forEach(callback => callback());
-   }
-   if (message.type === 'route' && typeof message.value === 'string' && message.value.length <= 2048 && message.value.startsWith('/') && !message.value.startsWith('//')) {
-     window.dispatchEvent(new CustomEvent('instinct-route', {detail:message.value}));
-   }
-   if (message.type === 'live' && message.value && typeof message.value === 'object' && typeof message.value.kind === 'string') {
-     for (const listener of [...liveListeners]) listener(message.value);
-   }
- });
- // Live Files: the shell holds the stream and forwards each op and focus, and resync when the File must read its live data again; this frame never sees the stream or its ticket. The kit's live store subscribes. For a focus the kit finds the element and reveal reports where it is, so the shell can scroll its page, which is the one scroller.
- const liveListeners = new Set();
- // A File that reads its live data gives its first read here while it renders, and ready waits for it, so the first paint already has the data.
- const liveHolds = [];
- const live = Object.freeze({
-   subscribe: listener => { liveListeners.add(listener); return () => { liveListeners.delete(listener); }; },
-   hold: read => { if (read && typeof read.then === 'function' && liveHolds.length < 8) liveHolds.push(Promise.resolve(read).catch(() => {})); },
-   reveal: (request, element) => {
-     if (typeof request !== 'number' || !(element instanceof Element)) return;
-     const bounds = element.getBoundingClientRect();
-     send('live-reveal', {request, top: Math.max(0, bounds.top + window.scrollY), bottom: Math.max(0, bounds.bottom + window.scrollY)});
-   },
- });
- let errorCount = 0;
- const rejectionMessage = reason => { try { return 'Unhandled rejection: ' + (reason instanceof Error ? reason.message : String(reason)); } catch { return 'Unhandled rejection'; } };
- window.addEventListener('error', event => { if (++errorCount <= 20) { const message = String(event.message).slice(0,1024); send('diagnostic', message); metric('error', message); } });
- window.addEventListener('unhandledrejection', event => { if (++errorCount <= 20) { send('diagnostic','Unhandled application promise rejection'); metric('error', rejectionMessage(event.reason)); } });
- window.instinctFile = Object.freeze({initialRoute: decodeURIComponent(location.hash.slice(1) || '/'), route: path => {if (typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') && path.length <= 2048) send('route',path);}, asset: assetURL, request, live});
- const loadStyles = async () => {
-   if (!configuration.hasStyles) return;
-   const response = await window.fetch('main.css');
-   if (!response.ok) throw new Error('Styles unavailable');
-   const css = await materializeStyle(await response.text());
-   const stylesheet = document.createElement('style');
-   stylesheet.textContent = css + '\nbody:has(> #root > .artifact-card){background:transparent}body:has(> #root > .artifact-card)>#root{padding:0}#root>.artifact-card{border-radius:0;box-shadow:none;background:transparent}'; document.head.append(stylesheet);
- };
- const waitForContent = async () => {
-   const root = document.getElementById('root');
-   if (!root.hasChildNodes()) await new Promise((resolve, reject) => {
-     const mounted = new MutationObserver(() => {
-       if (root.hasChildNodes()) { clearTimeout(deadline); mounted.disconnect(); resolve(); }
-     });
-     const deadline = setTimeout(() => {
-       mounted.disconnect(); reject(new Error('File did not render within 30 seconds'));
-     }, 30000);
-     mounted.observe(root, {childList:true});
-   });
-   // The wait is short: a slow or lost read must not keep the rest of the File hidden, and its data still arrives when the read returns. The extra turn lets the File render what the read brought.
-   if (liveHolds.length) {
-     await Promise.race([Promise.all(liveHolds), new Promise(resolve => setTimeout(resolve, 1500))]);
-     await new Promise(resolve => setTimeout(resolve));
-   }
-   // Layout starts font loading even while the parent keeps this frame offscreen.
-   root.getBoundingClientRect();
-   const images = [...root.querySelectorAll('img')].filter(image => {
-     const bounds = image.getBoundingClientRect();
-     return bounds.width > 0 && bounds.height > 0 && bounds.bottom > 0 && bounds.top < innerHeight && bounds.right > 0 && bounds.left < innerWidth;
-   });
-   const assets = Promise.all([...styleAssets.values(), document.fonts.ready, ...images.map(image => {
-     image.loading = 'eager';
-     // A missing image must not hide the rest of the file indefinitely.
-     return image.decode().catch(() => {});
-   })]);
-   // Slow media must not keep already-rendered content hidden.
-   await Promise.race([assets, new Promise(resolve => setTimeout(resolve, 500))]);
- };
- // A native dialog needs the visible viewport, not the full document height of the expanded frame.
- let modalOpen = false, modalViewport = null;
- const reportModal = () => {
-   const open = document.querySelector('dialog:modal') !== null;
-   if (open === modalOpen) return;
-   modalOpen = open;
-   document.documentElement.toggleAttribute('data-instinct-modal-pending', open);
-   if (open && modalViewport === null) modalViewport = window.innerHeight;
-   send('modal', open);
-   if (!open) reportHeight();
- };
- new MutationObserver(reportModal).observe(document.documentElement, {subtree:true,childList:true,attributes:true,attributeFilter:['open']});
- // The trusted shell sizes this frame to its content so one page scroll carries the hero, the card and the file together.
- let reportedHeight = 0, lastViewport = window.innerHeight, lastHeight = 0, mutated = false, lastSettled = 0, coincidences = 0;
- // Images, media and fonts that finished, so growth they cause can be told from growth that only follows the viewport.
- const settledResources = () => {
-   let count = 0;
-   for (const image of document.images) if (image.complete) count++;
-   for (const media of document.querySelectorAll('video, audio')) if (media.readyState > 0) count++;
-   document.fonts.forEach((font) => { if (font.status === 'loaded') count++; });
-   return count;
- };
- const reportHeight = () => {
-   // Closing posts across frames; wait for the shell to restore our viewport before measuring viewport-sized content.
-   if (modalOpen || (modalViewport !== null && window.innerHeight !== modalViewport)) return;
-   const restoring = modalViewport !== null;
-   modalViewport = null;
-   const height = Math.ceil(document.getElementById('root').getBoundingClientRect().bottom + window.scrollY);
-   const viewportDelta = window.innerHeight - lastViewport, heightDelta = height - lastHeight;
-   const settled = settledResources(), contentChanged = !restoring && (mutated || settled !== lastSettled);
-   lastViewport = window.innerHeight; lastHeight = height; mutated = false; lastSettled = settled;
-   // Content sized in viewport units grows with the frame the shell just resized; reporting that would resize it again without end.
-   // Growth that lands with a change of the File's own, such as a DOM change or a finished image, font or video, is reported, up to
-   // three resizes in a row so content that changes on every frame cannot keep growing the frame.
-   const tracksViewport = viewportDelta > 0 && heightDelta > 0 && heightDelta <= viewportDelta;
-   if (viewportDelta !== 0 && !tracksViewport) coincidences = 0;
-   if (tracksViewport && (!contentChanged || ++coincidences > 3)) { reportedHeight = height; return; }
-   if (height === reportedHeight) return;
-   reportedHeight = height;
-   send('height', height);
- };
- const watchHeight = () => {
-   new MutationObserver(() => { mutated = true; }).observe(document.getElementById('root'), {subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style','hidden']});
-   new ResizeObserver(reportHeight).observe(document.getElementById('root'));
-   window.addEventListener('resize', reportHeight);
-   reportHeight();
- };
- let scriptAttempts = 0;
- const loadScript = () => {
-   const script = document.createElement('script');
-   script.src = assetURL('main.js'); script.crossOrigin = 'anonymous';
-   script.onload = () => { void waitForContent().then(() => { if (document.documentElement.hasAttribute('data-instinct-full-screen')) send('full-screen', null); send('ready', null); metric('ready'); watchHeight(); }).catch(() => send('load-failed', null)); };
-   script.onerror = () => { script.remove(); if (++scriptAttempts < 3) setTimeout(loadScript, 1000 * scriptAttempts); else send('load-failed', null); };
-   document.body.append(script);
- };
- const preload = document.createElement('link');
- preload.rel = 'preload'; preload.as = 'script'; preload.crossOrigin = 'anonymous'; preload.href = assetURL('main.js');
- document.head.append(preload);
- void loadStyles().then(loadScript).catch(() => send('load-failed', null));
- send('handshake', null);
- send('modal-viewport', null);
-})();</script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>anthony</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;700&family=IBM+Plex+Mono:wght@300;400;500&family=Work+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#ffffff;color:#0a0a0a;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow-x:hidden;position:relative}
+.hero{position:relative;width:100%;height:100vh;display:flex;align-items:center;justify-content:center}
+.scatter{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:hidden}
+.st{position:absolute;text-transform:lowercase;white-space:nowrap;color:#0a0a0a;opacity:.6}
+.s1{top:24%;left:14%;font-size:16px;font-weight:400;font-family:'Inter',sans-serif;letter-spacing:.05em}
+.s2{top:66%;right:16%;font-size:28px;font-weight:700;font-family:'Space Grotesk',sans-serif;letter-spacing:-.02em}
+.s3{bottom:14%;left:7%;font-size:14px;font-weight:300;font-family:'IBM Plex Mono',monospace;letter-spacing:.15em}
+.s4{top:23%;right:11%;font-size:16px;font-weight:400;font-family:'Work Sans',sans-serif;letter-spacing:.08em}
+.s5{bottom:36%;right:7%;font-size:22px;font-weight:500;font-family:'IBM Plex Mono',monospace;letter-spacing:.02em}
+.s6{top:40%;left:9%;font-size:22px;font-weight:400;font-family:'Space Grotesk',sans-serif;letter-spacing:.12em}
+.s7{top:33%;right:20%;font-size:18px;font-weight:700;font-family:'Space Grotesk',sans-serif;letter-spacing:.05em}
+.sec{position:absolute;pointer-events:auto;max-width:400px}
+.sec-t{font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:lowercase;margin-bottom:10px;opacity:.85}
+.sec-i{font-size:16px;font-weight:400;font-family:'Inter',sans-serif;text-transform:lowercase;opacity:.75;line-height:1.6;letter-spacing:.01em;cursor:pointer;transition:all .3s ease}
+.sec-i:hover{opacity:1;letter-spacing:.05em;transform:translateX(4px)}
+.books{top:8%;left:8%}
+.goals{top:8%;left:32%}
+.stats{top:8%;left:58%}
+.ver{position:absolute;bottom:3%;right:3%;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;opacity:.4}
+.links{position:absolute;bottom:3%;left:3%;display:flex;gap:15px;font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.5;pointer-events:auto}
+.links a,.links span{color:#0a0a0a;text-decoration:none;text-transform:lowercase;letter-spacing:.05em;transition:all .3s ease}
+.links a:hover{opacity:1;letter-spacing:.1em;transform:translateY(-1px)}
+.coord{position:absolute;font-size:9px;font-weight:300;font-family:'IBM Plex Mono',monospace;opacity:.25;letter-spacing:.02em}
+.c1{top:18%;left:3%}.c2{top:62%;right:4%}.c3{bottom:28%;left:25%}.c4{top:85%;right:30%}
+.gbar{position:absolute;height:2px;background:#0a0a0a;opacity:.3}
+.b1{width:150px;top:30%;right:25%;transform:rotate(-12deg)}
+.b2{width:100px;bottom:40%;left:18%;transform:rotate(8deg)}
+.b3{width:80px;top:70%;right:40%;transform:rotate(-5deg)}
+.brk{position:absolute;font-size:40px;font-family:'IBM Plex Mono',monospace;opacity:.2;line-height:1}
+.tl{top:10px;left:10px}.tr{top:10px;right:10px}.bl{bottom:10px;left:10px}.br{bottom:10px;right:10px}
+.status{position:absolute;top:5%;right:5%;display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.5}
+.dot{width:8px;height:8px;background:#00c853;border-radius:50%;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.03) 1px,transparent 1px);background-size:50px 50px;pointer-events:none;opacity:.5}
+.rt{position:absolute;font-family:'IBM Plex Mono',monospace;opacity:.3;font-size:16px}
+.r1{top:55%;left:22%}.r2{top:28%;right:35%}.r3{bottom:22%;right:15%}.r4{top:75%;left:40%}.r5{top:12%;left:45%}
+.bt{position:absolute;font-family:'IBM Plex Mono',monospace;font-weight:700;opacity:.7}
+.bt1{top:80%;left:60%;font-size:14px}
+.bt2{top:44%;right:6%;font-size:20px}
+.scan{position:absolute;left:0;width:100%;height:1px;background:rgba(0,0,0,.15);animation:scan 8s linear infinite}
+@keyframes scan{0%{top:0}100%{top:100%}}
+main{text-align:center;z-index:10;position:relative}
+h1{font-family:'Space Grotesk','Inter',sans-serif;font-size:clamp(90px,22vw,280px);font-weight:700;letter-spacing:-.04em;text-transform:lowercase;line-height:1;color:#0a0a0a}
+.name-stack{position:relative;display:inline-block}
+.trail{position:absolute;top:0;left:0;width:100%}
+.t1{opacity:.9;filter:blur(.5px);z-index:8}.t2{opacity:.65;filter:blur(2px);z-index:7}.t3{opacity:.6;filter:blur(3px);z-index:6}.t4{opacity:.5;filter:blur(4px);z-index:5}.t5{opacity:.4;filter:blur(5px);z-index:4}.t6{opacity:.3;filter:blur(6px);z-index:3}.t7{opacity:.2;filter:blur(7px);z-index:2}.t8{opacity:.15;filter:blur(8px);z-index:1}
+.scroll-ind{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);z-index:20;opacity:.5;animation:bounce 2s infinite ease-in-out;pointer-events:none;text-align:center}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
+.scroll-t{font-size:12px;font-family:'IBM Plex Mono',monospace;text-transform:lowercase;letter-spacing:.05em;margin-bottom:4px}
+.scroll-c{font-size:20px;font-family:'IBM Plex Mono',monospace}
+.content{position:relative;z-index:5;max-width:720px;margin:0 auto;padding:40px 24px 120px}
+.hm-cap{font-size:12px;font-family:'IBM Plex Mono',monospace;opacity:.5;text-transform:lowercase;letter-spacing:.08em;margin-bottom:10px}
+.hm{border:1px solid rgba(0,0,0,.12);border-radius:6px;padding:14px 16px;background:#fff}
+.hm-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.hm-title{font-size:13px;font-weight:600;font-family:'IBM Plex Mono',monospace;text-transform:lowercase;letter-spacing:.06em}
+.hm-total{font-size:11px;font-family:'IBM Plex Mono',monospace;opacity:.55}
+.hm-months{display:grid;grid-auto-flow:column;grid-auto-columns:13px;justify-content:start;font-size:9px;font-family:'IBM Plex Mono',monospace;opacity:.45;margin-bottom:4px}
+.hm-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,10px);grid-auto-columns:10px;gap:3px}
+.cell{width:10px;height:10px;border-radius:2px;background:#ebedf0}
+.cell.l1{background:#c9c9c9}.cell.l2{background:#8f8f8f}.cell.l3{background:#4a4a4a}.cell.l4{background:#0a0a0a}
+.hm-leg{display:flex;align-items:center;gap:3px;margin-top:8px;font-size:9px;font-family:'IBM Plex Mono',monospace;opacity:.5}
+.hm-tip{position:fixed;z-index:99;background:#0a0a0a;color:#fff;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:4px 8px;border-radius:4px;pointer-events:none;opacity:0;transition:opacity .1s;transform:translate(-50%,-100%)}
+.hm-tip.show{opacity:1}
+.notes{margin-top:64px}
+.note{margin-bottom:28px}
+.note-d{font-size:11px;font-family:'IBM Plex Mono',monospace;opacity:.45;margin-bottom:6px}
+.note-b{font-size:15px;line-height:1.7;opacity:.85;max-width:560px}
+@media (max-width:820px){
+  h1{font-size:17vw}
+  .ver{display:none}
+  .links{flex-wrap:wrap;max-width:62%;row-gap:6px}
+  .goals{display:none}
+  .books{top:6%;left:6%}
+  .stats{top:6%;left:auto;right:6%}
+  .s2{font-size:20px}
+  .s5,.s6{font-size:15px}
+  .sec-i{font-size:13px}
+  .quote,.bt2{display:none}
+}
+@media (max-width:480px){
+  .hm-months{grid-auto-columns:11px}
+  .s4,.s7,.r2,.b3{display:none}
+  .stats{right:4%}
+  .books{left:4%}
+  .hm-grid{grid-template-rows:repeat(7,8px);grid-auto-columns:8px}
+  .cell{width:8px;height:8px}
+}
+
+@media (prefers-color-scheme: dark){
+  body{background:#0a0a0a;color:#f2f2f2}
+  .st{color:#f2f2f2}
+  h1{color:#f2f2f2}
+  .links a,.links span{color:#f2f2f2}
+  .gbar{background-color:#f2f2f2}
+  .grid{background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px)}
+  .scan{background:rgba(255,255,255,.15)}
+  .hm{background:#111;border-color:rgba(255,255,255,.14)}
+  .cell{background:#1c1c1c}
+  .cell.l1{background:#3a3a3a}.cell.l2{background:#6b6b6b}.cell.l3{background:#a8a8a8}.cell.l4{background:#f2f2f2}
+  .hm-tip{background:#f2f2f2;color:#0a0a0a}
+  .scroll-t,.scroll-c{color:#f2f2f2}
+}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="scatter" id="scatter">
+    <div class="grid"></div>
+    <span class="st s1">dual degree student</span>
+    <span class="st s2">building things</span>
+    <span class="st s3">calorie deficit + 7am jogs</span>
+    <span class="st s4">welcome to my humble abode</span>
+    <span class="st s5">2 packets of chips a day</span>
+    <span class="st s6">cs x finance</span>
+    <span class="st s7">nightwing</span>
+    <div class="sec books">
+      <div class="sec-t">books</div>
+      <div class="sec-i">missing</div>
+      <div class="sec-i">recommend me one</div>
+    </div>
+    <div class="sec goals">
+      <div class="sec-t">goals</div>
+      <div class="sec-i">remote tech x finance internship</div>
+      <div class="sec-i">winter research intern @ iit</div>
+      <div class="sec-i">beat midnight cravings</div>
+      <div class="sec-i">graduate 2029</div>
+    </div>
+    <div class="sec stats">
+      <div class="sec-t">stats</div>
+      <div class="sec-i">github: mjanthony819</div>
+      <div class="sec-i">hostel life, vijayawada</div>
+      <div class="sec-i">valorant</div>
+      <div class="sec-i">walks -&gt; jogs</div>
+    </div>
+    <div class="ver">build 2026.11.23</div>
+    <div class="links">
+      <a href="https://www.linkedin.com/in/m-j-anthony-0646b2299/" target="_blank" rel="noopener">linkedin</a>
+      <a href="https://github.com/mjanthony819" target="_blank" rel="noopener">github</a>
+      <span>discord: theonewhoace.</span>
+      <a href="mailto:mjanthony819@gmail.com">mail</a>
+    </div>
+    <div class="coord c1">(24, 73)</div>
+    <div class="coord c2">(58, 12)</div>
+    <div class="coord c3">(91, 44)</div>
+    <div class="coord c4">(37, 86)</div>
+    <div class="gbar b1"></div>
+    <div class="gbar b2"></div>
+    <div class="gbar b3"></div>
+    <div class="brk tl">&#9484;</div>
+    <div class="brk tr">&#9488;</div>
+    <div class="brk bl">&#9492;</div>
+    <div class="brk br">&#9496;</div>
+    <div class="status"><span class="dot"></span><span>online</span></div>
+    <div class="rt r1">&#8599;</div>
+    <div class="rt r2">*</div>
+    <div class="rt r3">&#8594;</div>
+    <div class="rt r4">+</div>
+    <div class="rt r5">&times;</div>
+    <div class="bt bt1">lfg</div>
+    <div class="bt bt2">gg</div>
+    <div class="scan"></div>
+  </div>
+  <main>
+    <div class="name-stack">
+      <h1 class="trail t8">anthony</h1>
+      <h1 class="trail t7">anthony</h1>
+      <h1 class="trail t6">anthony</h1>
+      <h1 class="trail t5">anthony</h1>
+      <h1 class="trail t4">anthony</h1>
+      <h1 class="trail t3">anthony</h1>
+      <h1 class="trail t2">anthony</h1>
+      <h1 class="trail t1">anthony</h1>
+      <h1 style="visibility:hidden">anthony</h1>
+    </div>
+  </main>
+  <div class="scroll-ind" id="scrollInd">
+    <div class="scroll-t">scroll down</div>
+    <div class="scroll-c">v</div>
+  </div>
+</div>
+
+<div class="content" id="content">
+  <div class="hm-cap">last 90 days</div>
+  <div class="hm">
+    <div class="hm-head">
+      <span class="hm-title">github</span>
+      <span class="hm-total" id="hmTotal"></span>
+    </div>
+    <div class="hm-months" id="hmMonths"></div>
+    <div class="hm-grid" id="hmGrid"></div>
+    <div class="hm-leg">
+      <span>less&nbsp;</span>
+      <div class="cell"></div><div class="cell l1"></div><div class="cell l2"></div><div class="cell l3"></div><div class="cell l4"></div>
+      <span>&nbsp;more</span>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="hm-cap">notes</div>
+    <div class="note">
+      <div class="note-d">2026.11.23</div>
+      <div class="note-b">nothing here yet. this is where i write.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const GH_DAYS = [{"date": "2026-08-25", "count": 0, "level": 0}, {"date": "2026-08-26", "count": 0, "level": 0}, {"date": "2026-08-27", "count": 0, "level": 0}, {"date": "2026-08-28", "count": 0, "level": 0}, {"date": "2026-08-29", "count": 0, "level": 0}, {"date": "2026-08-30", "count": 2, "level": 1}, {"date": "2026-08-31", "count": 0, "level": 0}, {"date": "2026-09-01", "count": 0, "level": 0}, {"date": "2026-09-02", "count": 0, "level": 0}, {"date": "2026-09-03", "count": 0, "level": 0}, {"date": "2026-09-04", "count": 0, "level": 0}, {"date": "2026-09-05", "count": 0, "level": 0}, {"date": "2026-09-06", "count": 0, "level": 0}, {"date": "2026-09-07", "count": 0, "level": 0}, {"date": "2026-09-08", "count": 0, "level": 0}, {"date": "2026-09-09", "count": 0, "level": 0}, {"date": "2026-09-10", "count": 0, "level": 0}, {"date": "2026-09-11", "count": 0, "level": 0}, {"date": "2026-09-12", "count": 0, "level": 0}, {"date": "2026-09-13", "count": 0, "level": 0}, {"date": "2026-09-14", "count": 0, "level": 0}, {"date": "2026-09-15", "count": 0, "level": 0}, {"date": "2026-09-16", "count": 0, "level": 0}, {"date": "2026-09-17", "count": 0, "level": 0}, {"date": "2026-09-18", "count": 0, "level": 0}, {"date": "2026-09-19", "count": 0, "level": 0}, {"date": "2026-09-20", "count": 0, "level": 0}, {"date": "2026-09-21", "count": 0, "level": 0}, {"date": "2026-09-22", "count": 0, "level": 0}, {"date": "2026-09-23", "count": 0, "level": 0}, {"date": "2026-09-24", "count": 0, "level": 0}, {"date": "2026-09-25", "count": 0, "level": 0}, {"date": "2026-09-26", "count": 0, "level": 0}, {"date": "2026-09-27", "count": 0, "level": 0}, {"date": "2026-09-28", "count": 0, "level": 0}, {"date": "2026-09-29", "count": 0, "level": 0}, {"date": "2026-09-30", "count": 0, "level": 0}, {"date": "2026-10-01", "count": 0, "level": 0}, {"date": "2026-10-02", "count": 0, "level": 0}, {"date": "2026-10-03", "count": 0, "level": 0}, {"date": "2026-10-04", "count": 0, "level": 0}, {"date": "2026-10-05", "count": 0, "level": 0}, {"date": "2026-10-06", "count": 0, "level": 0}, {"date": "2026-10-07", "count": 0, "level": 0}, {"date": "2026-10-08", "count": 0, "level": 0}, {"date": "2026-10-09", "count": 0, "level": 0}, {"date": "2026-10-10", "count": 0, "level": 0}, {"date": "2026-10-11", "count": 0, "level": 0}, {"date": "2026-10-12", "count": 0, "level": 0}, {"date": "2026-10-13", "count": 0, "level": 0}, {"date": "2026-10-14", "count": 48, "level": 3}, {"date": "2026-10-15", "count": 29, "level": 2}, {"date": "2026-10-16", "count": 9, "level": 1}, {"date": "2026-10-17", "count": 0, "level": 0}, {"date": "2026-10-18", "count": 89, "level": 4}, {"date": "2026-10-19", "count": 259, "level": 4}, {"date": "2026-10-20", "count": 2, "level": 1}, {"date": "2026-10-21", "count": 3, "level": 1}, {"date": "2026-10-22", "count": 27, "level": 2}, {"date": "2026-10-23", "count": 11, "level": 1}, {"date": "2026-10-24", "count": 2, "level": 1}, {"date": "2026-10-25", "count": 2, "level": 1}, {"date": "2026-10-26", "count": 2, "level": 1}, {"date": "2026-10-27", "count": 3, "level": 1}, {"date": "2026-10-28", "count": 12, "level": 1}, {"date": "2026-10-29", "count": 2, "level": 1}, {"date": "2026-10-30", "count": 2, "level": 1}, {"date": "2026-10-31", "count": 13, "level": 1}, {"date": "2026-11-01", "count": 2, "level": 1}, {"date": "2026-11-02", "count": 2, "level": 1}, {"date": "2026-11-03", "count": 2, "level": 1}, {"date": "2026-11-04", "count": 2, "level": 1}, {"date": "2026-11-05", "count": 31, "level": 2}, {"date": "2026-11-06", "count": 2, "level": 1}, {"date": "2026-11-07", "count": 39, "level": 2}, {"date": "2026-11-08", "count": 2, "level": 1}, {"date": "2026-11-09", "count": 2, "level": 1}, {"date": "2026-11-10", "count": 2, "level": 1}, {"date": "2026-11-11", "count": 2, "level": 1}, {"date": "2026-11-12", "count": 17, "level": 1}, {"date": "2026-11-13", "count": 176, "level": 4}, {"date": "2026-11-14", "count": 46, "level": 3}, {"date": "2026-11-15", "count": 37, "level": 2}, {"date": "2026-11-16", "count": 285, "level": 4}, {"date": "2026-11-17", "count": 36, "level": 2}, {"date": "2026-11-18", "count": 42, "level": 2}, {"date": "2026-11-19", "count": 30, "level": 2}, {"date": "2026-11-20", "count": 0, "level": 0}, {"date": "2026-11-21", "count": 5, "level": 1}, {"date": "2026-11-22", "count": 2, "level": 1}];
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+(function(){
+  const grid=document.getElementById('hmGrid'),months=document.getElementById('hmMonths'),total=document.getElementById('hmTotal');
+  let sum=0,lastM=-1;
+  let lastLabelCol=-3;
+  GH_DAYS.forEach((d,i)=>{
+    sum+=d.count;
+    const c=document.createElement('div');
+    c.className='cell'+(d.level>0?' l'+d.level:'');
+    const dt=new Date(d.date+'T00:00:00');
+    c.dataset.tip=(d.count===0?'no contributions':d.count+' contribution'+(d.count===1?'':'s'))+' - '+DAYS[dt.getDay()]+' '+MONTHS[dt.getMonth()]+' '+dt.getDate();
+    grid.appendChild(c);
+    if(i%7===0){
+      const span=document.createElement('span');
+      const m=dt.getMonth(), col=i/7;
+      if(m!==lastM&&col-lastLabelCol>=3){span.textContent=MONTHS[m];lastM=m;lastLabelCol=col}
+      else if(m!==lastM){lastM=m}
+      months.appendChild(span);
+    }
+  });
+  total.textContent=sum+' contributions';
+  const tip=document.createElement('div');tip.className='hm-tip';document.body.appendChild(tip);
+  grid.addEventListener('mouseover',e=>{
+    const c=e.target.closest('.cell');
+    if(!c||!c.dataset.tip)return;
+    tip.textContent=c.dataset.tip;tip.classList.add('show');
+    const r=c.getBoundingClientRect();
+    tip.style.left=Math.max(60,Math.min(r.left+r.width/2,window.innerWidth-60))+'px';
+    tip.style.top=(r.top<44?r.bottom+8:r.top-8)+'px';
+    if(r.top<44)tip.style.transform='translate(-50%,0)';else tip.style.transform='translate(-50%,-100%)';
+  });
+  grid.addEventListener('mouseleave',()=>tip.classList.remove('show'));
+})();
+
+// name trail follows the cursor
+const trails=document.querySelectorAll('.trail');
+let pos=[...trails].map((_,i)=>({x:-(i+1)*5,y:-(i+1)*5,rot:0}));
+const base=pos.map(p=>({...p}));
+let t;
+function apply(){trails.forEach((el,i)=>{el.style.transform=`translate(${pos[i].x}px,${pos[i].y}px) rotate(${pos[i].rot}deg)`})}
+function loop(){
+  for(let i=trails.length-1;i>0;i--){
+    const p=pos[i-1],c=pos[i],o=(i+1)*5;
+    c.x+=(p.x-o-c.x)*.15;c.y+=(p.y-o-c.y)*.15;c.rot+=(p.rot-c.rot)*.12;
+  }
+  apply();requestAnimationFrame(loop);
+}
+document.addEventListener('mousemove',e=>{
+  clearTimeout(t);
+  const cx=(e.clientX/window.innerWidth-.5)*2,cy=(e.clientY/window.innerHeight-.5)*2;
+  pos[0].x=-5+cx*10;pos[0].y=-5+cy*12;pos[0].rot=cx*2;
+  t=setTimeout(()=>{pos=base.map(p=>({...p}))},500);
+});
+document.addEventListener('mouseleave',()=>{pos=base.map(p=>({...p}))});
+loop();
+
+// fade hero as you scroll to content
+const scatter=document.getElementById('scatter'),heroMain=document.querySelector('main'),scrollInd=document.getElementById('scrollInd'),content=document.getElementById('content');
+window.addEventListener('scroll',()=>{
+  const top=content.getBoundingClientRect().top,h=window.innerHeight;
+  const p=Math.min(Math.max(1-top/(h*1.2),0),1);
+  scatter.style.opacity=1-p;heroMain.style.opacity=1-p;scrollInd.style.opacity=(1-p)*.5;
+});
+</script>
+</body>
+</html>

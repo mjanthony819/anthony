@@ -260,7 +260,7 @@ let t;
 function apply(){trails.forEach((el,i)=>{el.style.transform=`translate(${pos[i].x}px,${pos[i].y}px) rotate(${pos[i].rot}deg)`})}
 function loop(){
   for(let i=trails.length-1;i>0;i--){
-    const p=pos[i-1],c=pos[i],o=(i+1)*5;
+    const p=pos[i-1],c=pos[i],o=5;
     c.x+=(p.x-o-c.x)*.15;c.y+=(p.y-o-c.y)*.15;c.rot+=(p.rot-c.rot)*.12;
   }
   apply();requestAnimationFrame(loop);

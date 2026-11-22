@@ -254,14 +254,14 @@ const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 // name trail follows the cursor
 const trails=document.querySelectorAll('.trail');
-let pos=[...trails].map((_,i)=>({x:-(i+1)*5,y:-(i+1)*5,rot:0}));
+let pos=[...trails].map(()=>({x:-5,y:-5,rot:0}));
 const base=pos.map(p=>({...p}));
 let t;
 function apply(){trails.forEach((el,i)=>{el.style.transform=`translate(${pos[i].x}px,${pos[i].y}px) rotate(${pos[i].rot}deg)`})}
 function loop(){
   for(let i=trails.length-1;i>0;i--){
-    const p=pos[i-1],c=pos[i],o=5;
-    c.x+=(p.x-o-c.x)*.15;c.y+=(p.y-o-c.y)*.15;c.rot+=(p.rot-c.rot)*.12;
+    const p=pos[i-1],c=pos[i],k=Math.max(.16-(i-1)*.02,.06);
+    c.x+=(p.x-c.x)*k;c.y+=(p.y-c.y)*k;c.rot+=(p.rot-c.rot)*k;
   }
   apply();requestAnimationFrame(loop);
 }

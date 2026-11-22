@@ -259,7 +259,7 @@ const base=pos.map(p=>({...p}));
 let t,e=0,lastMove=-1e9;
 function apply(){trails.forEach((el,i)=>{el.style.transform=`translate(${pos[i].x}px,${pos[i].y}px) rotate(${pos[i].rot}deg)`})}
 function loop(){
-  e+=(((performance.now()-lastMove)<400?1:0)-e)*.1;
+  e+=(((performance.now()-lastMove)<2000?1:0)-e)*.04;
   for(let i=trails.length-1;i>0;i--){
     const p=pos[i-1],c=pos[i],o=(i+1)*5*e;
     c.x+=(p.x-o-c.x)*.15;c.y+=(p.y-o-c.y)*.15;c.rot+=(p.rot-c.rot)*.12;

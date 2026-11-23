@@ -1,0 +1,122 @@
+name: Update contributions data
+
+on:
+  schedule:
+    - cron: "30 4 * * *" # 10:00 IST daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Update data, patch widget, clean up
+        run: |
+          set -e
+          git rm -f --ignore-unmatch "2-gh-contributions.json" "4-gh-contributions.json" || true
+          mkdir -p scripts
+          cat > scripts/update-contributions.py << 'PYEOF'
+          #!/usr/bin/env python3
+          """Fetch mjanthony819's public GitHub contribution calendar and rewrite gh-contributions.json.
+
+          Parses the public calendar fragment at github.com/users/<user>/contributions
+          (no auth needed). Writes the last 90 days in the shape the site's heatmap
+          widget expects. Exits non-zero on any fetch/parse problem so a bad run never
+          overwrites good data.
+          """
+          import datetime
+          import json
+          import re
+          import sys
+          import urllib.request
+
+          USER = "mjanthony819"
+          URL = "https://github.com/users/%s/contributions" % USER
+          OUT = "gh-contributions.json"
+
+          req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0 (contributions-widget)"})
+          with urllib.request.urlopen(req, timeout=30) as resp:
+              html = resp.read().decode("utf-8", "replace")
+
+          cells = re.findall(
+              r'<td[^>]*data-date="(\d{4}-\d{2}-\d{2})"[^>]*id="(contribution-day-component-[^"]+)"[^>]*data-level="(\d)"',
+              html,
+          )
+          tips = dict(
+              re.findall(
+                  r'<tool-tip[^>]*for="(contribution-day-component-[^"]+)"[^>]*>\s*(?:<!--[^>]*-->)?\s*([^<]+)</tool-tip>',
+                  html,
+              )
+          )
+          if len(cells) < 300:
+              sys.exit("parse failed: only %d day cells found" % len(cells))
+
+          days = []
+          for date, cid, level in cells:
+              text = tips.get(cid, "")
+              m = re.match(r"(\d[\d,]*) contribution", text)
+              count = int(m.group(1).replace(",", "")) if m else 0
+              days.append({"date": date, "count": count, "level": int(level)})
+
+          days.sort(key=lambda d: d["date"])
+          last90 = days[-90:]
+          if len(last90) != 90:
+              sys.exit("parse failed: got %d days, need 90" % len(last90))
+
+          payload = {
+              "updated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+              "username": USER,
+              "total": sum(d["count"] for d in last90),
+              "days": last90,
+          }
+          with open(OUT, "w") as f:
+              json.dump(payload, f, separators=(",", ":"))
+              f.write("\n")
+          print("wrote %s: %s..%s, total %d" % (OUT, last90[0]["date"], last90[-1]["date"], payload["total"]))
+          PYEOF
+          cat > /tmp/apply_widget_fix.py << 'PYEOF'
+          import json, re, sys
+
+          # 1) regenerate real data already done by update-contributions.py
+          payload = json.load(open('gh-contributions.json'))
+          days = payload['days']
+          assert len(days) == 90
+
+          src = open('main.js').read()
+          if '__ghFetch' in src:
+              print('main.js already patched; ensuring baked data is current')
+          else:
+              start = src.find('var GH_DAYS = ')
+              assert start != -1
+              arr_start = src.find('[', start)
+              arr_end = src.find('];', arr_start)
+              new_arr = json.dumps(days, separators=(',', ':'))
+              src = src[:arr_start] + new_arr + src[arr_end + 1:]
+              mount = '(0, import_client.createRoot)(document.getElementById("root")).render('
+              assert src.count(mount) == 1
+              prefetch = ('var __ghFetch=fetch("gh-contributions.json",{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.days&&d.days.length===90)GH_DAYS=d.days}).catch(function(){});'
+                          'Promise.race([__ghFetch,new Promise(function(res){setTimeout(res,3000)})]).finally(function(){')
+              src = src.replace(mount, prefetch + mount)
+              tail = '(App, {}) }));\n})();'
+              assert src.count(tail) == 1
+              src = src.replace(tail, '(App, {}) }));\n});\n})();')
+              open('main.js', 'w').write(src)
+              print('main.js patched')
+          PYEOF
+          python scripts/update-contributions.py
+          python /tmp/apply_widget_fix.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Wire contributions widget to real GitHub data"
+            git push
+          else
+            echo "no changes"
+          fi

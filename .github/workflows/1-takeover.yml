@@ -1,0 +1,94 @@
+name: Site takeover helper
+on:
+  push:
+    paths:
+      - '.github/workflows/*takeover.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: notes-publishing
+  cancel-in-progress: false
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply scroll takeover
+        run: |
+          python - <<'PY'
+          import base64, pathlib
+          css = base64.b64decode(''.join('''
+          Ci8qIHNjcm9sbCB0YWtlb3ZlcjogaGVybyBzdGF5cyBwaW5uZWQsIHRoZSBjb250ZW50IHBhbmVsIHNsaWRlcyBvdmVyIGl0ICov
+          Ci5hcy1yb290IHsgb3ZlcmZsb3cteDogY2xpcDsgfQouYXMtaGVybyB7CiAgcG9zaXRpb246IHN0aWNreTsKICB0b3A6IDA7CiAg
+          aGVpZ2h0OiAxMDB2aDsKICBoZWlnaHQ6IDEwMHN2aDsKICBtaW4taGVpZ2h0OiA1NjBweDsKICB6LWluZGV4OiAwOwogIHRyYW5z
+          Zm9ybS1vcmlnaW46IDUwJSA0MCU7CiAgd2lsbC1jaGFuZ2U6IHRyYW5zZm9ybSwgb3BhY2l0eTsKfQouYXMtY29udGVudCB7CiAg
+          bWF4LXdpZHRoOiA3MjBweDsKICBtaW4taGVpZ2h0OiAxMDB2aDsKICBtaW4taGVpZ2h0OiAxMDBzdmg7CiAgcGFkZGluZy10b3A6
+          IDE4dmg7CiAgaXNvbGF0aW9uOiBpc29sYXRlOwp9Ci5hcy1jb250ZW50OjpiZWZvcmUgewogIGNvbnRlbnQ6ICIiOwogIHBvc2l0
+          aW9uOiBhYnNvbHV0ZTsKICB6LWluZGV4OiAtMTsKICB0b3A6IDA7CiAgYm90dG9tOiAwOwogIGxlZnQ6IDUwJTsKICB3aWR0aDog
+          MTAwdnc7CiAgbWFyZ2luLWxlZnQ6IC01MHZ3OwogIGJhY2tncm91bmQ6ICNmZmY7CiAgYm9yZGVyLXJhZGl1czogY2FsYygzMnB4
+          ICogKDEgLSB2YXIoLS10ay1pbiwgMCkpKSBjYWxjKDMycHggKiAoMSAtIHZhcigtLXRrLWluLCAwKSkpIDAgMDsKICBib3gtc2hh
+          ZG93OiAwIC0yNHB4IDYwcHggcmdiYSgwLCAwLCAwLCAuMTApOwp9Ci50ay1ydiB7CiAgb3BhY2l0eTogY2FsYyguMTUgKyAuODUg
+          KiB2YXIoLS10ay1ydiwgMSkpOwogIHRyYW5zZm9ybTogdHJhbnNsYXRlWShjYWxjKDI4cHggKiAoMSAtIHZhcigtLXRrLXJ2LCAx
+          KSkpKTsKfQpAbWVkaWEgKG1heC13aWR0aDogODIwcHgpIHsKICAuYXMtaGVybyB7IGhlaWdodDogMTAwc3ZoOyBtaW4taGVpZ2h0
+          OiA1MjBweDsgfQogIC5hcy1jb250ZW50IHsgcGFkZGluZy10b3A6IDEydmg7IH0KfQpAbWVkaWEgKHByZWZlcnMtY29sb3Itc2No
+          ZW1lOiBkYXJrKSB7CiAgLmFzLWNvbnRlbnQ6OmJlZm9yZSB7IGJhY2tncm91bmQ6ICMwYTBhMGE7IGJveC1zaGFkb3c6IDAgLTI0
+          cHggNjBweCByZ2JhKDAsIDAsIDAsIC42KTsgfQp9CkBtZWRpYSAocHJlZmVycy1yZWR1Y2VkLW1vdGlvbjogcmVkdWNlKSB7CiAg
+          LmFzLWhlcm8geyB3aWxsLWNoYW5nZTogYXV0bzsgdHJhbnNmb3JtOiBub25lICFpbXBvcnRhbnQ7IG9wYWNpdHk6IDEgIWltcG9y
+          dGFudDsgZmlsdGVyOiBub25lICFpbXBvcnRhbnQ7IH0KICAudGstcnYgeyBvcGFjaXR5OiAxICFpbXBvcnRhbnQ7IHRyYW5zZm9y
+          bTogbm9uZSAhaW1wb3J0YW50OyB9CiAgLmFzLWNvbnRlbnQ6OmJlZm9yZSB7IGJvcmRlci1yYWRpdXM6IDMycHggMzJweCAwIDA7
+          IH0KfQo=
+          '''.split())).decode()
+          js = base64.b64decode(''.join('''
+          KCgpPT57CmNvbnN0IHJlZHVjZT1tYXRjaE1lZGlhKCcocHJlZmVycy1yZWR1Y2VkLW1vdGlvbjogcmVkdWNlKScpOwpsZXQgaGVy
+          byxjb250ZW50LGl0ZW1zLHRhcmdldD0wLGN1cj0wLHJhZj0wLHJ2VD1bXTsKY29uc3QgY2xhbXA9KHYsYSxiKT0+TWF0aC5taW4o
+          YixNYXRoLm1heChhLHYpKTsKZnVuY3Rpb24gcmVhZCgpewogIGNvbnN0IHZoPWlubmVySGVpZ2h0OwogIHRhcmdldD1jbGFtcChz
+          Y3JvbGxZL3ZoLDAsMSk7CiAgLy8gY29udGVudCByZXZlYWwgcHJvZ3Jlc3MgcGVyIGl0ZW0sIGJhc2VkIG9uIHZpZXdwb3J0IHBv
+          c2l0aW9uCiAgcnZUPWl0ZW1zLm1hcChlbD0+e2NvbnN0IHI9ZWwuZ2V0Qm91bmRpbmdDbGllbnRSZWN0KCk7cmV0dXJuIGNsYW1w
+          KCh2aCowLjk1LXIudG9wKS8odmgqMC4zNSksMCwxKX0pOwp9CmZ1bmN0aW9uIHBhaW50KCl7CiAgcmFmPTA7CiAgY3VyKz0odGFy
+          Z2V0LWN1cikqMC4xODsgaWYoTWF0aC5hYnModGFyZ2V0LWN1cik8MC4wMDEpY3VyPXRhcmdldDsKICBjb25zdCBwPWN1cjsKICBp
+          ZighcmVkdWNlLm1hdGNoZXMpewogICAgaGVyby5zdHlsZS50cmFuc2Zvcm09J3NjYWxlKCcrKDEtMC4xKnApLnRvRml4ZWQoNCkr
+          JyknOwogICAgaGVyby5zdHlsZS5vcGFjaXR5PSgxLTAuODUqcCkudG9GaXhlZCgzKTsKICAgIGhlcm8uc3R5bGUuZmlsdGVyPXA+
+          MC4wMT8nYmx1cignKyhwKjUpLnRvRml4ZWQoMikrJ3B4KSc6J25vbmUnOwogICAgaXRlbXMuZm9yRWFjaCgoZWwsaSk9PmVsLnN0
+          eWxlLnNldFByb3BlcnR5KCctLXRrLXJ2JyxydlRbaV0udG9GaXhlZCgzKSkpOwogIH0KICBjb250ZW50LnN0eWxlLnNldFByb3Bl
+          cnR5KCctLXRrLWluJyxjbGFtcCgocC0wLjcpLzAuMywwLDEpLnRvRml4ZWQoMykpOwogIGlmKGN1ciE9PXRhcmdldClyYWY9cmVx
+          dWVzdEFuaW1hdGlvbkZyYW1lKHBhaW50KTsKfQpmdW5jdGlvbiBvblNjcm9sbCgpe3JlYWQoKTtpZighcmFmKXJhZj1yZXF1ZXN0
+          QW5pbWF0aW9uRnJhbWUocGFpbnQpfQpmdW5jdGlvbiBpbml0KCl7CiAgaGVybz1kb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcuYXMt
+          aGVybycpO2NvbnRlbnQ9ZG9jdW1lbnQucXVlcnlTZWxlY3RvcignLmFzLWNvbnRlbnQnKTsKICBpZighaGVyb3x8IWNvbnRlbnQp
+          cmV0dXJuIGZhbHNlOwogIGl0ZW1zPVsuLi5jb250ZW50LmNoaWxkcmVuXTtpdGVtcy5mb3JFYWNoKGU9PmUuY2xhc3NMaXN0LmFk
+          ZCgndGstcnYnKSk7CiAgYWRkRXZlbnRMaXN0ZW5lcignc2Nyb2xsJyxvblNjcm9sbCx7cGFzc2l2ZTp0cnVlfSk7YWRkRXZlbnRM
+          aXN0ZW5lcigncmVzaXplJyxvblNjcm9sbCk7CiAgbmV3IE11dGF0aW9uT2JzZXJ2ZXIoKCk9Pntjb25zdCBuPVsuLi5jb250ZW50
+          LmNoaWxkcmVuXS5maWx0ZXIoZT0+IWUuY2xhc3NMaXN0LmNvbnRhaW5zKCd0ay1ydicpKTtpZihuLmxlbmd0aCl7bi5mb3JFYWNo
+          KGU9PmUuY2xhc3NMaXN0LmFkZCgndGstcnYnKSk7aXRlbXM9Wy4uLmNvbnRlbnQuY2hpbGRyZW5dO29uU2Nyb2xsKCl9fSkub2Jz
+          ZXJ2ZShjb250ZW50LHtjaGlsZExpc3Q6dHJ1ZX0pOwogIGN1cj1jbGFtcChzY3JvbGxZL2lubmVySGVpZ2h0LDAsMSk7b25TY3Jv
+          bGwoKTtyZXR1cm4gdHJ1ZTsKfQpsZXQgbj0wO2NvbnN0IHQ9c2V0SW50ZXJ2YWwoKCk9PntpZihpbml0KCl8fCsrbj44MCljbGVh
+          ckludGVydmFsKHQpfSwxNTApOwp9KSgpOwo=
+          '''.split())).decode()
+          root = pathlib.Path('.')
+          (root/'takeover.js').write_text(js)
+          mc = root/'main.css'
+          t = mc.read_text()
+          if 'scroll takeover: hero' not in t:
+              mc.write_text(t.rstrip('\n') + '\n' + css)
+          ix = root/'index.html'
+          h = ix.read_text()
+          tag = '<script src="takeover.js" defer></script>'
+          if tag not in h:
+              assert '</body>' in h
+              ix.write_text(h.replace('</body>', tag + '</body>'))
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Add scroll takeover"
+            git pull --rebase
+            git push
+          fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - uses: actions/deploy-pages@v4

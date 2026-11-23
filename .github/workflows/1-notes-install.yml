@@ -1,0 +1,55 @@
+name: Publish notes
+on:
+  push:
+    paths:
+      - 'notes-data.json'
+      - 'notes-*.js'
+      - 'notes-*.css'
+      - 'notes*.html'
+      - '*-notes-*.js'
+      - '*-notes-*.css'
+      - '*-notes-*.html'
+      - '*-notes-data.json'
+      - '*-portfolio-notes.js'
+      - '.github/workflows/*notes-install.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: notes-publishing
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep uploaded notes filenames consistent
+        run: |
+          python - <<'PY'
+          import re, pathlib, json
+          root=pathlib.Path('.')
+          allowed={'notes-style.css','notes-core.js','notes-desk.js','notes-desk.html','notes.html','notes-data.json','portfolio-notes.js'}
+          for source in sorted(root.iterdir()):
+              if not source.is_file(): continue
+              target=re.sub(r'^\d+-','',source.name)
+              if target not in allowed or target==source.name: continue
+              if target=='notes-data.json':
+                  data=json.loads(source.read_text())
+                  assert data.get('version')==1 and isinstance(data.get('posts'),list), 'Invalid notes data'
+              (root/target).write_bytes(source.read_bytes())
+              source.unlink()
+          index=root/'index.html'
+          script='<script src="portfolio-notes.js" defer></script>'
+          text=index.read_text()
+          if script not in text:
+              assert '</body>' in text
+              index.write_text(text.replace('</body>',script+'</body>'))
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish notes files"
+            git pull --rebase
+            git push
+          fi

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "posts": [
+    {
+      "title": "Temporary publishing test",
+      "date": "2026-11-24",
+      "body": "This is a temporary system test of the notes publishing flow. It is not a personal blog post and will be removed after verification.",
+      "image": "",
+      "id": "b4583e89-ca6e-438a-ac7a-398a2c61b446"
+    }
+  ]
+}

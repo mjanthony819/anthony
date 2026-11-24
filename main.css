@@ -5736,13 +5736,6 @@ h1 {
   filter: grayscale(1);
   border: 1px solid rgba(0, 0, 0, .3);
 }
-.as-photo-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 47%, rgba(255, 255, 255, .3) 48%, rgba(255, 255, 255, .3) 48.8%, transparent 50%);
-  pointer-events: none;
-}
 @media (max-width: 820px) {
   .as-photo-card {
     width: 130px;

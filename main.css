@@ -5726,7 +5726,7 @@ h1 {
   right: 6%;
   width: 230px;
   transform: rotate(3.5deg);
-  z-index: 2;
+  z-index: 0;
 }
 .as-photo-card img {
   display: block;

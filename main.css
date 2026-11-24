@@ -5731,4 +5731,7 @@ h1 {
     background-position: right 5% top 9%;
     background-size: 130px auto;
   }
-  }
+}
+
+/* hide the online status pill */
+.as-status { display: none; }

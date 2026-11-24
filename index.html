@@ -267,7 +267,7 @@
  window.instinctFile = Object.freeze({initialRoute: decodeURIComponent(location.hash.slice(1) || '/'), route: path => {if (typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') && path.length <= 2048) send('route',path);}, asset: assetURL, request, live});
  const loadStyles = async () => {
    if (!configuration.hasStyles) return;
-   const response = await window.fetch('main.css?v=brown-theme-20261125c');
+   const response = await window.fetch('main.css?v=brown-theme-20261125d');
    if (!response.ok) throw new Error('Styles unavailable');
    const css = await materializeStyle(await response.text());
    const stylesheet = document.createElement('style');

@@ -1,12 +1,4 @@
 {
   "version": 1,
-  "posts": [
-    {
-      "id": "relaytest0003",
-      "title": "probe3",
-      "date": "2026-11-24",
-      "body": "probe body three",
-      "image": ""
-    }
-  ]
+  "posts": []
 }

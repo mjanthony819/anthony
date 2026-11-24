@@ -1,0 +1,35 @@
+name: One-time heatmap stylesheet cache refresh
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh-stylesheet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add version query and remove temporary workflows
+        shell: bash
+        run: |
+          python3 <<'PYCODE'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          old = "window.fetch('main.css')"
+          new = "window.fetch('main.css?v=green-heatmap-20261124')"
+          if new not in s:
+              if s.count(old) != 1:
+                  raise SystemExit('Expected one stylesheet fetch; aborting')
+              s = s.replace(old, new)
+          p.write_text(s)
+          PYCODE
+          rm -f .github/workflows/1-green-heatmap-once.yml .github/workflows/2-green-heatmap-once-v2.yml .github/workflows/3-green-heatmap-once-fixed.yml .github/workflows/4-heatmap-cache-bust.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A index.html .github/workflows/
+          if git diff --cached --quiet; then
+            echo 'Nothing to commit; idempotent.'
+            exit 0
+          fi
+          git commit -m 'Refresh portfolio stylesheet cache for green heatmap'
+          git push

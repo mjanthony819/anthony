@@ -5721,7 +5721,7 @@ h1 {
 /* mainpage photo card: baked tilted greyscale image as hero background,
    so hero text (in .as-hero's stacking context) always paints above it */
 .as-hero {
-  background-image: url("dog-card.png"), url("mainpage-card.png");
+  background-image: url("dog-dance.gif"), url("mainpage-card.png");
   background-repeat: no-repeat, no-repeat;
   background-position: left 4% bottom 8%, right 6% top 7%;
   background-size: 170px auto, 230px auto;

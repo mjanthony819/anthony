@@ -1,4 +1,12 @@
 {
   "version": 1,
-  "posts": []
+  "posts": [
+    {
+      "id": "8d86f92b-19a2-4dd3-a28f-989ca90b302e",
+      "title": "Relay test post (delete me)",
+      "date": "2026-11-24",
+      "body": "Automated end-to-end test of the new notes publish relay. This post is created and removed by Instinct within a few minutes. Nothing to read here.",
+      "image": ""
+    }
+  ]
 }

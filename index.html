@@ -364,4 +364,27 @@
  void loadStyles().then(loadScript).catch(() => send('load-failed', null));
  send('handshake', null);
  send('modal-viewport', null);
-})();</script><script src="portfolio-notes.js" defer></script><script src="takeover.js" defer></script></body></html>
+})();</script><script src="portfolio-notes.js" defer></script><script src="takeover.js" defer></script><script>
+(() => {
+  if (!window.matchMedia('(pointer: fine)').matches) return;
+  const tag = document.createElement('div');
+  tag.textContent = 'YOU';
+  tag.style.cssText = 'position:fixed;top:0;left:0;z-index:9999;pointer-events:none;'
+    + 'background:#f1e4d1;color:#14100d;font:600 10px/1 monospace;letter-spacing:.12em;'
+    + 'padding:4px 7px;border-radius:3px;opacity:0;transition:opacity .2s;'
+    + 'transform:translate3d(-100px,-100px,0);white-space:nowrap;';
+  document.addEventListener('DOMContentLoaded', () => document.body.append(tag));
+  if (document.body) document.body.append(tag);
+  let tx = -100, ty = -100, x = -100, y = -100, shown = false;
+  document.addEventListener('mousemove', (e) => {
+    tx = e.clientX + 14; ty = e.clientY + 18;
+    if (!shown) { shown = true; x = tx; y = ty; tag.style.opacity = '1'; }
+  });
+  document.addEventListener('mouseleave', () => { tag.style.opacity = '0'; shown = false; });
+  (function follow() {
+    x += (tx - x) * 0.18; y += (ty - y) * 0.18;
+    tag.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+    requestAnimationFrame(follow);
+  })();
+})();
+</script></body></html>
